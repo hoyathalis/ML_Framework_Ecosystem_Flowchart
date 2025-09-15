@@ -306,6 +306,96 @@
             min-height: 100%;
         }
 
+        /* Interactive diagram styles */
+        .mermaid .node {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mermaid .node:hover {
+            filter: brightness(1.1);
+            transform: scale(1.02);
+        }
+
+        .mermaid .edgePath {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mermaid .edgePath:hover path {
+            stroke-width: 3px !important;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+
+        .mermaid .edgePath.highlighted path {
+            stroke-width: 4px !important;
+            filter: drop-shadow(0 0 12px currentColor);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .mermaid .node.highlighted {
+            filter: brightness(1.2) drop-shadow(0 0 12px currentColor);
+            transform: scale(1.05);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Tooltip styles */
+        .diagram-tooltip {
+            position: absolute;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            max-width: 300px;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+        }
+
+        .diagram-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .tooltip-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip-description {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .tooltip-links {
+            margin-top: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .tooltip-link {
+            font-size: 0.75rem;
+            color: var(--accent-primary);
+            text-decoration: none;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+        }
+
+        .tooltip-link:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+
         .chart-controls-bottom {
             position: absolute;
             bottom: 1rem;
@@ -784,6 +874,11 @@ flowchart TD
                     <button class="chart-control-btn" id="resetZoomBtn" title="Reset Zoom">⌂</button>
                     <button class="chart-control-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
                 </div>
+                <div class="diagram-tooltip" id="diagramTooltip">
+                    <div class="tooltip-title" id="tooltipTitle"></div>
+                    <div class="tooltip-description" id="tooltipDescription"></div>
+                    <div class="tooltip-links" id="tooltipLinks"></div>
+                </div>
             </div>
         </section>
 
@@ -1048,10 +1143,24 @@ flowchart TD
             }
         }
 
+        // Node information database
+        const nodeInfo = {
+            'PT': { title: 'PyTorch', description: 'Popular deep learning framework with dynamic computation graphs', links: [{ name: 'Docs', url: 'https://pytorch.org/docs/' }] },
+            'TF': { title: 'TensorFlow', description: 'Google\'s production-ready ML framework with both eager and graph execution', links: [{ name: 'Docs', url: 'https://www.tensorflow.org/' }] },
+            'JAX': { title: 'JAX', description: 'NumPy-compatible library with JIT compilation and automatic differentiation', links: [{ name: 'Docs', url: 'https://jax.readthedocs.io/' }] },
+            'ONNX': { title: 'ONNX', description: 'Open Neural Network Exchange - universal model format', links: [{ name: 'Docs', url: 'https://onnx.ai/' }] },
+            'XLA': { title: 'OpenXLA', description: 'Accelerated Linear Algebra compiler for ML computations', links: [{ name: 'Docs', url: 'https://openxla.org/' }] },
+            'TRT': { title: 'TensorRT', description: 'NVIDIA\'s high-performance inference optimizer and runtime', links: [{ name: 'Docs', url: 'https://developer.nvidia.com/tensorrt' }] },
+            'CPU': { title: 'CPUs', description: 'General-purpose processors for ML training and inference', links: [] },
+            'GPU': { title: 'GPUs', description: 'Graphics processors optimized for parallel ML computations', links: [] },
+            'TPU': { title: 'TPUs', description: 'Google\'s custom chips designed specifically for tensor operations', links: [] }
+        };
+
         // Setup interactive features
         function setupInteractiveFeatures() {
             const svg = document.querySelector('#mermaidDiagram svg');
             const wrapper = document.getElementById('mermaidChart');
+            const tooltip = document.getElementById('diagramTooltip');
             
             if (!svg || !wrapper) return;
 
@@ -1062,6 +1171,12 @@ flowchart TD
             
             // Apply initial transform
             updateTransform();
+
+            // Add interactive features to nodes and edges
+            setTimeout(() => {
+                setupNodeInteractions(svg, tooltip);
+                setupEdgeInteractions(svg);
+            }, 200);
 
             // Mouse wheel zoom
             wrapper.addEventListener('wheel', (e) => {
@@ -1177,6 +1292,121 @@ flowchart TD
                 container.classList.add('fullscreen-mode');
                 document.getElementById('fullscreenBtn').innerHTML = '✕';
             }
+        }
+
+        // Setup node interactions
+        function setupNodeInteractions(svg, tooltip) {
+            const nodes = svg.querySelectorAll('.node');
+            
+            nodes.forEach(node => {
+                const nodeId = node.id || '';
+                const nodeKey = nodeId.replace(/^flowchart-/, '').replace(/-\d+$/, '');
+                const info = nodeInfo[nodeKey];
+                
+                node.addEventListener('mouseenter', (e) => {
+                    if (info) {
+                        showTooltip(e, info, tooltip);
+                    }
+                    highlightConnectedElements(node, svg);
+                });
+                
+                node.addEventListener('mouseleave', () => {
+                    hideTooltip(tooltip);
+                    clearHighlights(svg);
+                });
+                
+                node.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (info && info.links.length > 0) {
+                        window.open(info.links[0].url, '_blank');
+                    }
+                });
+            });
+        }
+
+        // Setup edge interactions
+        function setupEdgeInteractions(svg) {
+            const edges = svg.querySelectorAll('.edgePath');
+            
+            edges.forEach(edge => {
+                edge.addEventListener('mouseenter', () => {
+                    edge.classList.add('highlighted');
+                });
+                
+                edge.addEventListener('mouseleave', () => {
+                    edge.classList.remove('highlighted');
+                });
+                
+                edge.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Toggle permanent highlight
+                    if (edge.classList.contains('highlighted')) {
+                        edge.classList.remove('highlighted');
+                    } else {
+                        // Clear other permanent highlights
+                        svg.querySelectorAll('.edgePath.highlighted').forEach(e => e.classList.remove('highlighted'));
+                        edge.classList.add('highlighted');
+                    }
+                });
+            });
+        }
+
+        // Show tooltip
+        function showTooltip(event, info, tooltip) {
+            const tooltipTitle = document.getElementById('tooltipTitle');
+            const tooltipDescription = document.getElementById('tooltipDescription');
+            const tooltipLinks = document.getElementById('tooltipLinks');
+            
+            tooltipTitle.textContent = info.title;
+            tooltipDescription.textContent = info.description;
+            
+            // Clear and add links
+            tooltipLinks.innerHTML = '';
+            info.links.forEach(link => {
+                const linkElement = document.createElement('a');
+                linkElement.href = link.url;
+                linkElement.textContent = link.name;
+                linkElement.className = 'tooltip-link';
+                linkElement.target = '_blank';
+                linkElement.rel = 'noopener';
+                tooltipLinks.appendChild(linkElement);
+            });
+            
+            // Position tooltip
+            const containerRect = document.getElementById('mermaidChart').getBoundingClientRect();
+            const x = event.clientX - containerRect.left;
+            const y = event.clientY - containerRect.top;
+            
+            tooltip.style.left = `${Math.min(x + 10, containerRect.width - 320)}px`;
+            tooltip.style.top = `${Math.max(y - 10, 10)}px`;
+            tooltip.classList.add('visible');
+        }
+
+        // Hide tooltip
+        function hideTooltip(tooltip) {
+            tooltip.classList.remove('visible');
+        }
+
+        // Highlight connected elements
+        function highlightConnectedElements(node, svg) {
+            const nodeId = node.id;
+            const edges = svg.querySelectorAll('.edgePath');
+            
+            edges.forEach(edge => {
+                const edgeId = edge.id || '';
+                if (edgeId.includes(nodeId)) {
+                    edge.classList.add('highlighted');
+                }
+            });
+            
+            node.classList.add('highlighted');
+        }
+
+        // Clear all highlights
+        function clearHighlights(svg) {
+            svg.querySelectorAll('.highlighted').forEach(el => {
+                el.classList.remove('highlighted');
+            });
         }
 
         // Theme toggle with Mermaid re-rendering
