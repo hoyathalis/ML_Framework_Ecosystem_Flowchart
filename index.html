@@ -306,20 +306,13 @@
             min-height: 100%;
         }
 
-        /* Interactive diagram styles */
+        /* Simple node hover effect */
         .mermaid .node {
             cursor: pointer;
-            transition: all 0.3s ease;
         }
 
-        .mermaid .node.interactive-hover {
-            filter: brightness(1.15) drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
-            transform: scale(1.03);
-        }
-
-        .mermaid .node.interactive-highlighted {
-            filter: brightness(1.25) drop-shadow(0 0 15px rgba(59, 130, 246, 0.8));
-            transform: scale(1.06);
+        .mermaid .node:hover {
+            filter: brightness(1.1);
         }
 
         .mermaid .edgePath,
@@ -360,7 +353,7 @@
             50% { opacity: 0.7; }
         }
 
-        /* Tooltip styles */
+        /* Simple tooltip styles */
         .diagram-tooltip {
             position: absolute;
             background: var(--bg-primary);
@@ -372,13 +365,12 @@
             max-width: 300px;
             pointer-events: none;
             opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.2s ease;
+            display: none;
         }
 
         .diagram-tooltip.visible {
             opacity: 1;
-            transform: translateY(0);
+            display: block;
         }
 
         .tooltip-title {
@@ -1262,7 +1254,7 @@ flowchart TD
                 isDragging = false;
             });
 
-            // Click on background to clear highlights
+            // Click on background to clear highlights and tooltips
             wrapper.addEventListener('click', (e) => {
                 if (e.target === wrapper || e.target === svg) {
                     clearAllHighlights(svg);
@@ -1358,9 +1350,9 @@ flowchart TD
             });
         }
 
-        // Setup node interactions with debouncing
+        // Simple tooltip-only node interactions
         function setupNodeInteractions(svg, tooltip) {
-            console.log('Setting up node interactions');
+            console.log('Setting up simple node tooltips');
             
             // Find nodes using multiple selectors
             let nodes = svg.querySelectorAll('.node');
@@ -1371,67 +1363,31 @@ flowchart TD
                 nodes = svg.querySelectorAll('g[id*="flowchart"]:not([id*="edge"])');
             }
             
-            console.log('Found nodes:', nodes.length);
-            
-            let hoverTimeout;
-            let currentHoveredNode = null;
+            console.log('Found nodes for tooltips:', nodes.length);
             
             nodes.forEach((node, index) => {
                 const nodeId = node.id || '';
                 const nodeKey = extractNodeKey(nodeId);
                 const info = nodeInfo[nodeKey];
                 
-                console.log(`Node ${index}: id=${nodeId}, key=${nodeKey}, hasInfo=${!!info}`);
-                
-                // Ensure the node itself is hoverable
-                node.style.pointerEvents = 'all';
-                
-                // Use mouseenter/mouseleave with debouncing
-                node.addEventListener('mouseenter', (e) => {
-                    e.stopPropagation();
+                if (info) {
+                    console.log(`Node ${index}: ${nodeKey} has tooltip info`);
                     
-                    // Clear any pending hover timeout
-                    if (hoverTimeout) {
-                        clearTimeout(hoverTimeout);
-                    }
-                    
-                    // Don't do anything if we're already hovering this node
-                    if (currentHoveredNode === node) return;
-                    
-                    // Clear previous highlights
-                    clearNonPermanentHighlights(svg);
-                    hideTooltip(tooltip);
-                    
-                    // Set new hover state
-                    currentHoveredNode = node;
-                    node.classList.add('interactive-hover');
-                    
-                    // Show tooltip if available
-                    if (info) {
+                    node.addEventListener('mouseenter', (e) => {
                         showTooltip(e, info, tooltip);
-                    }
-                });
-                
-                node.addEventListener('mouseleave', (e) => {
-                    e.stopPropagation();
+                    });
                     
-                    // Use timeout to prevent flickering
-                    hoverTimeout = setTimeout(() => {
-                        if (currentHoveredNode === node) {
-                            currentHoveredNode = null;
-                            node.classList.remove('interactive-hover');
-                            clearNonPermanentHighlights(svg);
-                            hideTooltip(tooltip);
+                    node.addEventListener('mouseleave', () => {
+                        hideTooltip(tooltip);
+                    });
+                    
+                    node.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (info.links.length > 0) {
+                            window.open(info.links[0].url, '_blank');
                         }
-                    }, 50); // Short delay to prevent flickering
-                });
-                
-                node.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (info && info.links.length > 0) {
-                        window.open(info.links[0].url, '_blank');
-                    }
-                });
+                    });
+                }
             });
         }
 
@@ -1588,23 +1544,10 @@ flowchart TD
             tooltip.classList.remove('visible');
         }
 
-        // Simplified highlight function (removed for now to fix twitching)
-        function highlightConnectedElements(node, svg) {
-            // Commenting out for now to prevent conflicts
-            // We'll add this back once basic interactions work
-        }
-
         // Clear all highlights
         function clearAllHighlights(svg) {
-            svg.querySelectorAll('.interactive-hover, .interactive-highlighted').forEach(el => {
-                el.classList.remove('interactive-hover', 'interactive-highlighted');
-            });
-        }
-
-        // Clear non-permanent highlights
-        function clearNonPermanentHighlights(svg) {
-            svg.querySelectorAll('.interactive-hover').forEach(el => {
-                el.classList.remove('interactive-hover');
+            svg.querySelectorAll('.interactive-highlighted').forEach(el => {
+                el.classList.remove('interactive-highlighted');
             });
         }
 
