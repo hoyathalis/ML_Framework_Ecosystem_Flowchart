@@ -283,12 +283,7 @@
             width: 100%;
             height: calc(100vh - 12rem);
             position: relative;
-            overflow: hidden;
-            cursor: grab;
-        }
-
-        .mermaid-wrapper:active {
-            cursor: grabbing;
+            overflow: auto;
         }
 
         .mermaid {
@@ -303,148 +298,6 @@
             height: auto;
         }
 
-        /* Simple node hover effect */
-        .mermaid .node {
-            cursor: pointer;
-        }
-
-        .mermaid .node:hover {
-            filter: brightness(1.1);
-        }
-
-        .mermaid .edgePath,
-        .mermaid path[marker-end],
-        .mermaid path[d*="M"],
-        .mermaid g[class*="edge"] {
-            cursor: pointer;
-            transition: all 0.3s ease;
-            pointer-events: stroke !important;
-            stroke-width: 2px;
-        }
-
-        .mermaid .edgePath path,
-        .mermaid path[marker-end],
-        .mermaid g[class*="edge"] path {
-            transition: all 0.3s ease;
-            pointer-events: stroke !important;
-            cursor: pointer;
-        }
-
-        .mermaid .edgePath.interactive-hover path {
-            stroke-width: 3px !important;
-            filter: drop-shadow(0 0 6px currentColor);
-        }
-
-        .mermaid .edgePath.interactive-highlighted path {
-            stroke-width: 4px !important;
-            filter: drop-shadow(0 0 12px currentColor);
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .mermaid .edgeLabel {
-            pointer-events: none;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        /* Simple tooltip styles */
-        .diagram-tooltip {
-            position: absolute;
-            background: var(--bg-primary);
-            border: 1px solid var(--border-primary);
-            border-radius: var(--radius-md);
-            padding: 0.75rem;
-            box-shadow: var(--shadow-lg);
-            z-index: 1000;
-            max-width: 300px;
-            pointer-events: none;
-            opacity: 0;
-            display: none;
-        }
-
-        .diagram-tooltip.visible {
-            opacity: 1;
-            display: block;
-        }
-
-        .tooltip-title {
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .tooltip-description {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            line-height: 1.4;
-        }
-
-        .tooltip-links {
-            margin-top: 0.5rem;
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .tooltip-link {
-            font-size: 0.75rem;
-            color: var(--accent-primary);
-            text-decoration: none;
-            padding: 0.25rem 0.5rem;
-            background: var(--bg-tertiary);
-            border-radius: var(--radius-sm);
-        }
-
-        .tooltip-link:hover {
-            background: var(--accent-primary);
-            color: white;
-        }
-
-        .chart-controls-bottom {
-            position: absolute;
-            bottom: 1rem;
-            right: 1rem;
-            display: flex;
-            gap: 0.5rem;
-            z-index: 10;
-        }
-
-        .chart-control-btn {
-            background-color: var(--bg-primary);
-            border: 1px solid var(--border-primary);
-            color: var(--text-secondary);
-            width: 2.5rem;
-            height: 2.5rem;
-            border-radius: var(--radius-md);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 1.2rem;
-            box-shadow: var(--shadow-md);
-        }
-
-        .chart-control-btn:hover {
-            background-color: var(--bg-tertiary);
-            border-color: var(--border-secondary);
-        }
-
-        .fullscreen-mode {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 1000 !important;
-            background-color: var(--bg-primary) !important;
-        }
-
-        .fullscreen-mode .mermaid-wrapper {
-            height: 100vh !important;
-        }
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -885,17 +738,6 @@ flowchart TD
   class CPU,GPU,TPU,DSP,ANE,NPU hardware
                     </div>
                 </div>
-                <div class="chart-controls-bottom">
-                    <button class="chart-control-btn" id="zoomInBtn" title="Zoom In">+</button>
-                    <button class="chart-control-btn" id="zoomOutBtn" title="Zoom Out">−</button>
-                    <button class="chart-control-btn" id="resetZoomBtn" title="Reset Zoom">⌂</button>
-                    <button class="chart-control-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
-                </div>
-                <div class="diagram-tooltip" id="diagramTooltip">
-                    <div class="tooltip-title" id="tooltipTitle"></div>
-                    <div class="tooltip-description" id="tooltipDescription"></div>
-                    <div class="tooltip-links" id="tooltipLinks"></div>
-                </div>
             </div>
         </section>
 
@@ -1043,7 +885,7 @@ flowchart TD
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
     <script>
         // Theme management
         const themeToggle = document.getElementById('themeToggle');
@@ -1058,498 +900,47 @@ flowchart TD
             themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
         }
 
-        // Zoom and pan variables
-        let currentZoom = 1;
-        let panX = 0;
-        let panY = 0;
-        let isDragging = false;
-        let lastMouseX = 0;
-        let lastMouseY = 0;
-
-        // Initialize Mermaid with proper configuration
-        mermaid.initialize({ 
-            startOnLoad: false,
-            theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'neutral',
-            themeVariables: {
-                fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                fontSize: '16px'
-            },
+        // Simple Mermaid initialization
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'neutral',
+            securityLevel: 'loose',
             flowchart: {
                 useMaxWidth: true,
-                htmlLabels: true,
-                curve: 'basis',
-                padding: 20
-            },
-            securityLevel: 'loose'
+                htmlLabels: false
+            }
         });
 
-        // Store original diagram text
-        let originalDiagramText = '';
-
-        // Function to render Mermaid diagram
-        async function renderMermaidDiagram() {
-            const mermaidElement = document.getElementById('mermaidDiagram');
-            if (!mermaidElement) return;
-
-            // Store original text on first render
-            if (!originalDiagramText && mermaidElement.textContent.trim()) {
-                originalDiagramText = mermaidElement.textContent.trim();
-            }
-
-            if (originalDiagramText) {
-                // Clear any existing rendered content
+        // Basic theme toggle functionality
+        function updateTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: currentTheme === 'dark' ? 'dark' : 'neutral',
+                securityLevel: 'loose',
+                flowchart: {
+                    useMaxWidth: true,
+                    htmlLabels: false
+                }
+            });
+            
+            // Re-render if needed
+            const mermaidElement = document.querySelector('.mermaid');
+            if (mermaidElement && mermaidElement.getAttribute('data-processed')) {
                 mermaidElement.removeAttribute('data-processed');
-                mermaidElement.innerHTML = originalDiagramText;
-                
-                // Get current theme
-                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-                const isDarkMode = currentTheme === 'dark';
-                
-                // Configure Mermaid with proper theme
-                const config = {
-                    startOnLoad: false,
-                    theme: isDarkMode ? 'dark' : 'neutral',
-                    themeVariables: {
-                        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        fontSize: '16px',
-                        primaryColor: isDarkMode ? '#374151' : '#f3f4f6',
-                        primaryTextColor: isDarkMode ? '#f8fafc' : '#1f2937',
-                        primaryBorderColor: isDarkMode ? '#6b7280' : '#d1d5db',
-                        lineColor: isDarkMode ? '#9ca3af' : '#6b7280',
-                        secondaryColor: isDarkMode ? '#4b5563' : '#e5e7eb',
-                        tertiaryColor: isDarkMode ? '#1f2937' : '#ffffff',
-                        background: isDarkMode ? '#0f172a' : '#ffffff',
-                        mainBkg: isDarkMode ? '#1e293b' : '#f8fafc',
-                        secondBkg: isDarkMode ? '#334155' : '#f1f5f9'
-                    },
-                    flowchart: {
-                        useMaxWidth: true,
-                        htmlLabels: true,
-                        curve: 'basis',
-                        padding: 20
-                    },
-                    securityLevel: 'loose'
-                };
-
-                // Initialize Mermaid with new config
-                mermaid.initialize(config);
-                
-                try {
-                    // Clear and reset the element
-                    mermaidElement.innerHTML = originalDiagramText;
-                    mermaidElement.classList.add('mermaid');
-                    mermaidElement.removeAttribute('data-processed');
-                    
-                    // Use run method for more reliable rendering
-                    await mermaid.run();
-                    
-                    // Add interactive features after rendering
-                    setTimeout(setupInteractiveFeatures, 100);
-                } catch (error) {
-                    console.error('Mermaid rendering error:', error);
-                    mermaidElement.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Diagram failed to render. Please refresh the page.</div>';
-                }
+                mermaid.init(undefined, mermaidElement);
             }
         }
 
-        // Node information database
-        const nodeInfo = {
-            'PT': { title: 'PyTorch', description: 'Popular deep learning framework with dynamic computation graphs', links: [{ name: 'Docs', url: 'https://pytorch.org/docs/' }] },
-            'TF': { title: 'TensorFlow', description: 'Google\'s production-ready ML framework with both eager and graph execution', links: [{ name: 'Docs', url: 'https://www.tensorflow.org/' }] },
-            'JAX': { title: 'JAX', description: 'NumPy-compatible library with JIT compilation and automatic differentiation', links: [{ name: 'Docs', url: 'https://jax.readthedocs.io/' }] },
-            'ONNX': { title: 'ONNX', description: 'Open Neural Network Exchange - universal model format', links: [{ name: 'Docs', url: 'https://onnx.ai/' }] },
-            'XLA': { title: 'OpenXLA', description: 'Accelerated Linear Algebra compiler for ML computations', links: [{ name: 'Docs', url: 'https://openxla.org/' }] },
-            'TRT': { title: 'TensorRT', description: 'NVIDIA\'s high-performance inference optimizer and runtime', links: [{ name: 'Docs', url: 'https://developer.nvidia.com/tensorrt' }] },
-            'CPU': { title: 'CPUs', description: 'General-purpose processors for ML training and inference', links: [] },
-            'GPU': { title: 'GPUs', description: 'Graphics processors optimized for parallel ML computations', links: [] },
-            'TPU': { title: 'TPUs', description: 'Google\'s custom chips designed specifically for tensor operations', links: [] }
-        };
-
-        // Setup interactive features
-        function setupInteractiveFeatures() {
-            const svg = document.querySelector('#mermaidDiagram svg');
-            const wrapper = document.getElementById('mermaidChart');
-            const tooltip = document.getElementById('diagramTooltip');
-            
-            if (!svg || !wrapper) return;
-
-            // Reset zoom and pan
-            currentZoom = 1;
-            panX = 0;
-            panY = 0;
-
-            // Add interactive features to nodes and edges
-            setTimeout(() => {
-                setupNodeInteractions(svg, tooltip);
-                setupEdgeInteractions(svg);
-            }, 500);
-
-            // Mouse wheel zoom
-            wrapper.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const delta = e.deltaY > 0 ? 0.9 : 1.1;
-                zoom(delta, e.clientX, e.clientY);
-            });
-
-            // Mouse drag to pan
-            wrapper.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                lastMouseX = e.clientX;
-                lastMouseY = e.clientY;
-                wrapper.style.cursor = 'grabbing';
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (isDragging) {
-                    const deltaX = e.clientX - lastMouseX;
-                    const deltaY = e.clientY - lastMouseY;
-                    panX += deltaX;
-                    panY += deltaY;
-                    lastMouseX = e.clientX;
-                    lastMouseY = e.clientY;
-                    updateTransform();
-                }
-            });
-
-            document.addEventListener('mouseup', () => {
-                isDragging = false;
-                wrapper.style.cursor = 'grab';
-            });
-
-            // Touch support
-            let lastTouchDistance = 0;
-            wrapper.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 2) {
-                    lastTouchDistance = getTouchDistance(e.touches);
-                } else if (e.touches.length === 1) {
-                    isDragging = true;
-                    lastMouseX = e.touches[0].clientX;
-                    lastMouseY = e.touches[0].clientY;
-                }
-            });
-
-            wrapper.addEventListener('touchmove', (e) => {
-                e.preventDefault();
-                if (e.touches.length === 2) {
-                    const distance = getTouchDistance(e.touches);
-                    const delta = distance / lastTouchDistance;
-                    zoom(delta);
-                    lastTouchDistance = distance;
-                } else if (e.touches.length === 1 && isDragging) {
-                    const deltaX = e.touches[0].clientX - lastMouseX;
-                    const deltaY = e.touches[0].clientY - lastMouseY;
-                    panX += deltaX;
-                    panY += deltaY;
-                    lastMouseX = e.touches[0].clientX;
-                    lastMouseY = e.touches[0].clientY;
-                    updateTransform();
-                }
-            });
-
-            wrapper.addEventListener('touchend', () => {
-                isDragging = false;
-            });
-
-            // Click on background to clear highlights and tooltips
-            wrapper.addEventListener('click', (e) => {
-                if (e.target === wrapper || e.target === svg) {
-                    clearAllHighlights(svg);
-                    hideTooltip(tooltip);
-                }
-            });
-        }
-
-        function getTouchDistance(touches) {
-            const dx = touches[0].clientX - touches[1].clientX;
-            const dy = touches[0].clientY - touches[1].clientY;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        function zoom(factor, centerX, centerY) {
-            const newZoom = Math.max(0.1, Math.min(3, currentZoom * factor));
-            
-            if (centerX !== undefined && centerY !== undefined) {
-                const wrapper = document.getElementById('mermaidChart');
-                const rect = wrapper.getBoundingClientRect();
-                const x = centerX - rect.left;
-                const y = centerY - rect.top;
-                
-                panX = x - (x - panX) * (newZoom / currentZoom);
-                panY = y - (y - panY) * (newZoom / currentZoom);
-            }
-            
-            currentZoom = newZoom;
-            updateTransform();
-        }
-
-        function updateTransform() {
-            // Simplified transform to avoid interfering with Mermaid's layout
-            const wrapper = document.getElementById('mermaidChart');
-            if (wrapper) {
-                wrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
-                wrapper.style.transformOrigin = '0 0';
-            }
-        }
-
-        function resetZoom() {
-            currentZoom = 1;
-            panX = 0;
-            panY = 0;
-            updateTransform();
-        }
-
-        function toggleFullscreen() {
-            const container = document.getElementById('chartContainer');
-            if (container.classList.contains('fullscreen-mode')) {
-                container.classList.remove('fullscreen-mode');
-                document.getElementById('fullscreenBtn').innerHTML = '⛶';
-            } else {
-                container.classList.add('fullscreen-mode');
-                document.getElementById('fullscreenBtn').innerHTML = '✕';
-            }
-        }
-
-
-        // Simple tooltip-only node interactions
-        function setupNodeInteractions(svg, tooltip) {
-            // Find nodes using multiple selectors
-            let nodes = svg.querySelectorAll('.node');
-            if (nodes.length === 0) {
-                nodes = svg.querySelectorAll('g[class*="node"]');
-            }
-            if (nodes.length === 0) {
-                nodes = svg.querySelectorAll('g[id*="flowchart"]:not([id*="edge"])');
-            }
-            
-            nodes.forEach((node, index) => {
-                const nodeId = node.id || '';
-                const nodeKey = extractNodeKey(nodeId);
-                const info = nodeInfo[nodeKey];
-                
-                if (info) {
-                    node.addEventListener('mouseenter', (e) => {
-                        showTooltip(e, info, tooltip);
-                    });
-                    
-                    node.addEventListener('mouseleave', () => {
-                        hideTooltip(tooltip);
-                    });
-                    
-                    node.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (info.links.length > 0) {
-                            window.open(info.links[0].url, '_blank');
-                        }
-                    });
-                }
-            });
-        }
-
-        // Setup edge interactions
-        function setupEdgeInteractions(svg) {
-            // Try to find edges using multiple strategies
-            let edges = [];
-            
-            // Strategy 1: Look for .edgePath
-            let edgeElements = svg.querySelectorAll('.edgePath');
-            if (edgeElements.length > 0) {
-                edges = Array.from(edgeElements);
-            }
-            
-            // Strategy 2: Look for paths with specific attributes
-            if (edges.length === 0) {
-                edgeElements = svg.querySelectorAll('path[marker-end]');
-                if (edgeElements.length > 0) {
-                    edges = Array.from(edgeElements);
-                }
-            }
-            
-            // Strategy 3: Look for any path that looks like an edge
-            if (edges.length === 0) {
-                edgeElements = svg.querySelectorAll('path');
-                edges = Array.from(edgeElements).filter(path => {
-                    const d = path.getAttribute('d');
-                    return d && d.includes('M') && d.includes('L');
-                });
-            }
-            
-            edges.forEach((edge, index) => {
-                // Make sure edge is interactive
-                edge.style.pointerEvents = 'stroke';
-                edge.style.cursor = 'pointer';
-                
-                // If it's a group, also set pointer events on child paths
-                const childPaths = edge.querySelectorAll('path');
-                childPaths.forEach(path => {
-                    path.style.pointerEvents = 'stroke';
-                    path.style.cursor = 'pointer';
-                });
-                
-                // Create stable event handlers
-                const edgeMouseEnter = () => {
-                    edge.classList.add('interactive-hover');
-                };
-                
-                const edgeMouseLeave = () => {
-                    edge.classList.remove('interactive-hover');
-                };
-                
-                const edgeClick = (e) => {
-                    e.stopPropagation();
-                    
-                    // Toggle permanent highlight
-                    if (edge.classList.contains('interactive-highlighted')) {
-                        edge.classList.remove('interactive-highlighted');
-                    } else {
-                        // Clear other permanent highlights
-                        svg.querySelectorAll('.interactive-highlighted').forEach(el => {
-                            if (el !== edge) el.classList.remove('interactive-highlighted');
-                        });
-                        edge.classList.add('interactive-highlighted');
-                    }
-                };
-                
-                // Add event listeners
-                edge.addEventListener('mouseenter', edgeMouseEnter);
-                edge.addEventListener('mouseleave', edgeMouseLeave);
-                edge.addEventListener('click', edgeClick);
-                
-                // Also add to child paths if it's a group
-                childPaths.forEach(path => {
-                    path.addEventListener('mouseenter', edgeMouseEnter);
-                    path.addEventListener('mouseleave', edgeMouseLeave);
-                    path.addEventListener('click', edgeClick);
-                });
-            });
-        }
-
-        // Helper function to extract node key from ID
-        function extractNodeKey(nodeId) {
-            // Try different patterns to extract the key
-            let key = nodeId.replace(/^flowchart-/, '').replace(/-\d+$/, '');
-            
-            // Handle different mermaid ID patterns
-            if (key.includes('-')) {
-                const parts = key.split('-');
-                key = parts[parts.length - 1];
-            }
-            
-            return key.toUpperCase();
-        }
-
-        // Show tooltip
-        function showTooltip(event, info, tooltip) {
-            const tooltipTitle = document.getElementById('tooltipTitle');
-            const tooltipDescription = document.getElementById('tooltipDescription');
-            const tooltipLinks = document.getElementById('tooltipLinks');
-            
-            tooltipTitle.textContent = info.title;
-            tooltipDescription.textContent = info.description;
-            
-            // Clear and add links
-            tooltipLinks.innerHTML = '';
-            info.links.forEach(link => {
-                const linkElement = document.createElement('a');
-                linkElement.href = link.url;
-                linkElement.textContent = link.name;
-                linkElement.className = 'tooltip-link';
-                linkElement.target = '_blank';
-                linkElement.rel = 'noopener';
-                tooltipLinks.appendChild(linkElement);
-            });
-            
-            // Position tooltip
-            const containerRect = document.getElementById('mermaidChart').getBoundingClientRect();
-            const x = event.clientX - containerRect.left;
-            const y = event.clientY - containerRect.top;
-            
-            tooltip.style.left = `${Math.min(x + 10, containerRect.width - 320)}px`;
-            tooltip.style.top = `${Math.max(y - 10, 10)}px`;
-            tooltip.classList.add('visible');
-        }
-
-        // Hide tooltip
-        function hideTooltip(tooltip) {
-            tooltip.classList.remove('visible');
-        }
-
-        // Clear all highlights
-        function clearAllHighlights(svg) {
-            svg.querySelectorAll('.interactive-highlighted').forEach(el => {
-                el.classList.remove('interactive-highlighted');
-            });
-        }
-
-        // Theme toggle with Mermaid re-rendering
-        themeToggle.addEventListener('click', async () => {
+        // Theme toggle
+        themeToggle.addEventListener('click', () => {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
             document.documentElement.setAttribute('data-theme', newTheme);
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
-            
-            // Reset zoom and pan when switching themes
-            currentZoom = 1;
-            panX = 0;
-            panY = 0;
-            
-            // Re-render Mermaid diagram with new theme
-            try {
-                await renderMermaidDiagram();
-            } catch (error) {
-                console.error('Theme switch rendering error:', error);
-                // Fallback: reload page if rendering fails
-                setTimeout(() => window.location.reload(), 1000);
-            }
-        });
-
-        // Control button event listeners
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Wait for fonts to load
-            if (document.fonts && document.fonts.ready) {
-                await document.fonts.ready;
-            }
-            
-            // Initial render with error handling
-            try {
-                await renderMermaidDiagram();
-            } catch (error) {
-                console.error('Initial rendering error:', error);
-                // Retry once after a delay
-                setTimeout(async () => {
-                    try {
-                        await renderMermaidDiagram();
-                    } catch (retryError) {
-                        console.error('Retry rendering error:', retryError);
-                    }
-                }, 1000);
-            }
-            
-            // Button event listeners
-            document.getElementById('zoomInBtn').addEventListener('click', () => zoom(1.2));
-            document.getElementById('zoomOutBtn').addEventListener('click', () => zoom(0.8));
-            document.getElementById('resetZoomBtn').addEventListener('click', resetZoom);
-            document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
-            
-            // Keyboard shortcuts
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && document.getElementById('chartContainer').classList.contains('fullscreen-mode')) {
-                    toggleFullscreen();
-                }
-                if (e.ctrlKey || e.metaKey) {
-                    if (e.key === '=' || e.key === '+') {
-                        e.preventDefault();
-                        zoom(1.2);
-                    } else if (e.key === '-') {
-                        e.preventDefault();
-                        zoom(0.8);
-                    } else if (e.key === '0') {
-                        e.preventDefault();
-                        resetZoom();
-                    }
-                }
-            });
+            updateTheme();
         });
 
         // Smooth scrolling for anchor links
