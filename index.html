@@ -284,6 +284,12 @@
             height: calc(100vh - 12rem);
             position: relative;
             overflow: auto;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .mermaid-wrapper:active {
+            cursor: grabbing;
         }
 
         .mermaid {
@@ -1035,7 +1041,7 @@ flowchart TD
             }
         }
 
-        // Mouse wheel zoom
+        // Mouse wheel zoom and pan functionality
         function setupZoomControls() {
             const wrapper = document.getElementById('mermaidChart');
             
@@ -1044,6 +1050,82 @@ flowchart TD
                 e.preventDefault();
                 const delta = e.deltaY > 0 ? 0.9 : 1.1;
                 zoom(delta, e.clientX, e.clientY);
+            });
+
+            // Mouse drag to pan
+            wrapper.addEventListener('mousedown', (e) => {
+                // Only start dragging on the wrapper itself, not on buttons or other elements
+                if (e.target === wrapper || e.target.closest('.mermaid')) {
+                    isDragging = true;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    wrapper.style.cursor = 'grabbing';
+                    e.preventDefault();
+                }
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - lastMouseX;
+                    const deltaY = e.clientY - lastMouseY;
+                    panX += deltaX;
+                    panY += deltaY;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    updateTransform();
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    wrapper.style.cursor = 'grab';
+                }
+            });
+
+            // Touch support for mobile panning
+            let lastTouchDistance = 0;
+            let lastTouchX = 0;
+            let lastTouchY = 0;
+
+            wrapper.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    // Two finger pinch zoom
+                    lastTouchDistance = getTouchDistance(e.touches);
+                } else if (e.touches.length === 1) {
+                    // Single finger pan
+                    isDragging = true;
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                    e.preventDefault();
+                }
+            });
+
+            wrapper.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 2) {
+                    // Pinch zoom
+                    const distance = getTouchDistance(e.touches);
+                    if (lastTouchDistance > 0) {
+                        const delta = distance / lastTouchDistance;
+                        zoom(delta);
+                    }
+                    lastTouchDistance = distance;
+                } else if (e.touches.length === 1 && isDragging) {
+                    // Single finger pan
+                    const deltaX = e.touches[0].clientX - lastTouchX;
+                    const deltaY = e.touches[0].clientY - lastTouchY;
+                    panX += deltaX;
+                    panY += deltaY;
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                    updateTransform();
+                }
+            });
+
+            wrapper.addEventListener('touchend', () => {
+                isDragging = false;
+                lastTouchDistance = 0;
             });
 
             // Button controls
@@ -1070,6 +1152,13 @@ flowchart TD
                     }
                 }
             });
+        }
+
+        // Helper function for touch distance calculation
+        function getTouchDistance(touches) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
         }
 
         // Theme toggle
