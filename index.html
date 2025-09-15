@@ -230,31 +230,82 @@
 
         .chart-container {
             background-color: var(--bg-primary);
-            min-height: 40rem;
+            min-height: 50rem;
             transition: all 0.3s ease;
-            padding: 1rem;
+            padding: 0;
+            position: relative;
+            overflow: hidden;
         }
 
         .mermaid-wrapper {
             width: 100%;
-            height: auto;
-            min-height: 38rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow-x: auto;
+            height: 50rem;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        .mermaid-wrapper:active {
+            cursor: grabbing;
         }
 
         .mermaid {
             width: 100%;
-            height: auto;
-            min-height: 36rem;
+            height: 100%;
             background-color: transparent;
+            overflow: visible;
         }
 
         .mermaid svg {
-            max-width: 100%;
-            height: auto;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important;
+            min-width: 100%;
+            min-height: 100%;
+        }
+
+        .chart-controls-bottom {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+
+        .chart-control-btn {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            color: var(--text-secondary);
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1.2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .chart-control-btn:hover {
+            background-color: var(--bg-tertiary);
+            border-color: var(--border-secondary);
+        }
+
+        .fullscreen-mode {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 1000 !important;
+            background-color: var(--bg-primary) !important;
+        }
+
+        .fullscreen-mode .mermaid-wrapper {
+            height: 100vh !important;
         }
 
         /* Content Sections */
@@ -509,9 +560,9 @@
                 </div>
             </div>
             
-            <div class="chart-container">
+            <div class="chart-container" id="chartContainer">
                 <div id="mermaidChart" class="mermaid-wrapper">
-                    <div class="mermaid">
+                    <div class="mermaid" id="mermaidDiagram">
 flowchart TD
   %% Layer 1: Frameworks
   subgraph L1["🎯 Layer 1: High-Level Frameworks"]
@@ -674,6 +725,12 @@ flowchart TD
   class CPU,GPU,TPU,DSP,ANE,NPU hardware
                     </div>
                 </div>
+                <div class="chart-controls-bottom">
+                    <button class="chart-control-btn" id="zoomInBtn" title="Zoom In">+</button>
+                    <button class="chart-control-btn" id="zoomOutBtn" title="Zoom Out">−</button>
+                    <button class="chart-control-btn" id="resetZoomBtn" title="Reset Zoom">⌂</button>
+                    <button class="chart-control-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
+                </div>
             </div>
         </section>
 
@@ -830,29 +887,38 @@ flowchart TD
             themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
         }
 
+        // Zoom and pan variables
+        let currentZoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
         // Initialize Mermaid with proper configuration
         mermaid.initialize({ 
             startOnLoad: false,
             theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'neutral',
             themeVariables: {
                 fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                fontSize: '14px'
+                fontSize: '16px'
             },
             flowchart: {
-                useMaxWidth: true,
+                useMaxWidth: false,
                 htmlLabels: true,
                 curve: 'basis',
-                padding: 20
+                padding: 30
             },
             securityLevel: 'loose'
         });
 
         // Function to render Mermaid diagram
-        function renderMermaidDiagram() {
-            const mermaidElement = document.querySelector('.mermaid');
+        async function renderMermaidDiagram() {
+            const mermaidElement = document.getElementById('mermaidDiagram');
             if (mermaidElement && mermaidElement.textContent.trim()) {
                 // Clear any existing rendered content
                 mermaidElement.removeAttribute('data-processed');
+                mermaidElement.innerHTML = mermaidElement.textContent;
                 
                 // Re-initialize with current theme
                 const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -861,19 +927,161 @@ flowchart TD
                     theme: currentTheme === 'dark' ? 'dark' : 'neutral',
                     themeVariables: {
                         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        fontSize: '14px'
+                        fontSize: '16px'
                     },
                     flowchart: {
-                        useMaxWidth: true,
+                        useMaxWidth: false,
                         htmlLabels: true,
                         curve: 'basis',
-                        padding: 20
+                        padding: 30
                     },
                     securityLevel: 'loose'
                 });
                 
-                // Render the diagram
-                mermaid.run();
+                try {
+                    // Render the diagram
+                    const { svg } = await mermaid.render('mermaid-svg', mermaidElement.textContent);
+                    mermaidElement.innerHTML = svg;
+                    
+                    // Add interactive features after rendering
+                    setupInteractiveFeatures();
+                } catch (error) {
+                    console.error('Mermaid rendering error:', error);
+                    // Fallback to run method
+                    mermaid.run();
+                    setTimeout(setupInteractiveFeatures, 500);
+                }
+            }
+        }
+
+        // Setup interactive features
+        function setupInteractiveFeatures() {
+            const svg = document.querySelector('#mermaidDiagram svg');
+            const wrapper = document.getElementById('mermaidChart');
+            
+            if (!svg || !wrapper) return;
+
+            // Reset zoom and pan
+            currentZoom = 1;
+            panX = 0;
+            panY = 0;
+            
+            // Apply initial transform
+            updateTransform();
+
+            // Mouse wheel zoom
+            wrapper.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                zoom(delta, e.clientX, e.clientY);
+            });
+
+            // Mouse drag to pan
+            wrapper.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                wrapper.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const deltaX = e.clientX - lastMouseX;
+                    const deltaY = e.clientY - lastMouseY;
+                    panX += deltaX;
+                    panY += deltaY;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    updateTransform();
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                wrapper.style.cursor = 'grab';
+            });
+
+            // Touch support
+            let lastTouchDistance = 0;
+            wrapper.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 2) {
+                    lastTouchDistance = getTouchDistance(e.touches);
+                } else if (e.touches.length === 1) {
+                    isDragging = true;
+                    lastMouseX = e.touches[0].clientX;
+                    lastMouseY = e.touches[0].clientY;
+                }
+            });
+
+            wrapper.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (e.touches.length === 2) {
+                    const distance = getTouchDistance(e.touches);
+                    const delta = distance / lastTouchDistance;
+                    zoom(delta);
+                    lastTouchDistance = distance;
+                } else if (e.touches.length === 1 && isDragging) {
+                    const deltaX = e.touches[0].clientX - lastMouseX;
+                    const deltaY = e.touches[0].clientY - lastMouseY;
+                    panX += deltaX;
+                    panY += deltaY;
+                    lastMouseX = e.touches[0].clientX;
+                    lastMouseY = e.touches[0].clientY;
+                    updateTransform();
+                }
+            });
+
+            wrapper.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+
+        function getTouchDistance(touches) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function zoom(factor, centerX, centerY) {
+            const newZoom = Math.max(0.1, Math.min(3, currentZoom * factor));
+            
+            if (centerX !== undefined && centerY !== undefined) {
+                const wrapper = document.getElementById('mermaidChart');
+                const rect = wrapper.getBoundingClientRect();
+                const x = centerX - rect.left;
+                const y = centerY - rect.top;
+                
+                panX = x - (x - panX) * (newZoom / currentZoom);
+                panY = y - (y - panY) * (newZoom / currentZoom);
+            }
+            
+            currentZoom = newZoom;
+            updateTransform();
+        }
+
+        function updateTransform() {
+            const svg = document.querySelector('#mermaidDiagram svg');
+            if (svg) {
+                svg.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+                svg.style.transformOrigin = '0 0';
+            }
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            panX = 0;
+            panY = 0;
+            updateTransform();
+        }
+
+        function toggleFullscreen() {
+            const container = document.getElementById('chartContainer');
+            if (container.classList.contains('fullscreen-mode')) {
+                container.classList.remove('fullscreen-mode');
+                document.getElementById('fullscreenBtn').innerHTML = '⛶';
+            } else {
+                container.classList.add('fullscreen-mode');
+                document.getElementById('fullscreenBtn').innerHTML = '✕';
             }
         }
 
@@ -890,9 +1098,35 @@ flowchart TD
             setTimeout(renderMermaidDiagram, 300);
         });
 
-        // Initial render
+        // Control button event listeners
         document.addEventListener('DOMContentLoaded', () => {
+            // Initial render
             setTimeout(renderMermaidDiagram, 100);
+            
+            // Button event listeners
+            document.getElementById('zoomInBtn').addEventListener('click', () => zoom(1.2));
+            document.getElementById('zoomOutBtn').addEventListener('click', () => zoom(0.8));
+            document.getElementById('resetZoomBtn').addEventListener('click', resetZoom);
+            document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.getElementById('chartContainer').classList.contains('fullscreen-mode')) {
+                    toggleFullscreen();
+                }
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === '=' || e.key === '+') {
+                        e.preventDefault();
+                        zoom(1.2);
+                    } else if (e.key === '-') {
+                        e.preventDefault();
+                        zoom(0.8);
+                    } else if (e.key === '0') {
+                        e.preventDefault();
+                        resetZoom();
+                    }
+                }
+            });
         });
 
         // Smooth scrolling for anchor links
