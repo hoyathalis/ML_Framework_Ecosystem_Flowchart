@@ -173,6 +173,48 @@
             line-height: 1.7;
         }
 
+        /* Disclaimer */
+        .disclaimer {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: var(--radius-lg);
+            margin: 2rem auto 3rem auto;
+            max-width: 48rem;
+        }
+
+        [data-theme="dark"] .disclaimer {
+            background-color: #451a03;
+            border-color: #92400e;
+        }
+
+        .disclaimer-content {
+            padding: 1.5rem;
+        }
+
+        .disclaimer-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        [data-theme="dark"] .disclaimer-title {
+            color: #fbbf24;
+        }
+
+        .disclaimer-text {
+            color: #78350f;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        [data-theme="dark"] .disclaimer-text {
+            color: #fcd34d;
+        }
+
         /* Chart Section */
         .chart-section {
             background-color: var(--bg-primary);
@@ -549,6 +591,17 @@
             </p>
         </section>
 
+        <div class="disclaimer">
+            <div class="disclaimer-content">
+                <h3 class="disclaimer-title">⚠️ Accuracy Notice</h3>
+                <p class="disclaimer-text">
+                    This diagram aims to provide a comprehensive overview of the ML/AI framework ecosystem. 
+                    However, the landscape evolves rapidly and some connections or details might be outdated or incomplete. 
+                    <strong>Please verify information independently</strong> and refer to official documentation for the most current details.
+                </p>
+            </div>
+        </div>
+
         <section class="chart-section">
             <div class="chart-header">
                 <h2 class="chart-title">ML Framework Ecosystem Flowchart</h2>
@@ -843,16 +896,22 @@ flowchart TD
                     <h3 class="section-title">Resources</h3>
                     <div class="resources-list">
                         <p style="margin-bottom: 0.75rem;">
-                            <a href="#" class="footer-link">Framework Documentation</a>
+                            <a href="https://pytorch.org/docs/" target="_blank" rel="noopener" class="footer-link">PyTorch Documentation</a>
                         </p>
                         <p style="margin-bottom: 0.75rem;">
-                            <a href="#" class="footer-link">ONNX Model Zoo</a>
+                            <a href="https://www.tensorflow.org/guide" target="_blank" rel="noopener" class="footer-link">TensorFlow Guide</a>
                         </p>
                         <p style="margin-bottom: 0.75rem;">
-                            <a href="#" class="footer-link">Hardware Optimization Guides</a>
+                            <a href="https://onnx.ai/onnx/intro/" target="_blank" rel="noopener" class="footer-link">ONNX Documentation</a>
                         </p>
                         <p style="margin-bottom: 0.75rem;">
-                            <a href="#" class="footer-link">Performance Benchmarks</a>
+                            <a href="https://github.com/onnx/models" target="_blank" rel="noopener" class="footer-link">ONNX Model Zoo</a>
+                        </p>
+                        <p style="margin-bottom: 0.75rem;">
+                            <a href="https://jax.readthedocs.io/" target="_blank" rel="noopener" class="footer-link">JAX Documentation</a>
+                        </p>
+                        <p style="margin-bottom: 0.75rem;">
+                            <a href="https://openxla.org/" target="_blank" rel="noopener" class="footer-link">OpenXLA Project</a>
                         </p>
                     </div>
                 </section>
@@ -864,10 +923,10 @@ flowchart TD
         <div class="footer-content">
             <p>This architecture enables developers to write code in familiar high-level frameworks while achieving optimized performance across diverse hardware platforms.</p>
             <div class="footer-links">
-                <a href="#" class="footer-link">Documentation</a>
-                <a href="#" class="footer-link">Contributing</a>
-                <a href="#" class="footer-link">License</a>
-                <a href="https://github.com/hoyathalis/ML_Framework_Ecosystem_Flowchart" class="footer-link">GitHub</a>
+                <a href="https://github.com/hoyathalis/ML_Framework_Ecosystem_Flowchart#readme" target="_blank" rel="noopener" class="footer-link">Documentation</a>
+                <a href="https://github.com/hoyathalis/ML_Framework_Ecosystem_Flowchart/issues" target="_blank" rel="noopener" class="footer-link">Issues & Feedback</a>
+                <a href="https://github.com/hoyathalis/ML_Framework_Ecosystem_Flowchart/blob/main/LICENSE" target="_blank" rel="noopener" class="footer-link">License</a>
+                <a href="https://github.com/hoyathalis/ML_Framework_Ecosystem_Flowchart" target="_blank" rel="noopener" class="footer-link">GitHub Repository</a>
             </div>
         </div>
     </footer>
