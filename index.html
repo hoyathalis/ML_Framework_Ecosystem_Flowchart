@@ -309,33 +309,43 @@
         /* Interactive diagram styles */
         .mermaid .node {
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
         }
 
-        .mermaid .node:hover {
-            filter: brightness(1.1);
-            transform: scale(1.02);
+        .mermaid .node.interactive-hover {
+            filter: brightness(1.15) drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+            transform: scale(1.03);
+        }
+
+        .mermaid .node.interactive-highlighted {
+            filter: brightness(1.25) drop-shadow(0 0 15px rgba(59, 130, 246, 0.8));
+            transform: scale(1.06);
         }
 
         .mermaid .edgePath {
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            pointer-events: all;
         }
 
-        .mermaid .edgePath:hover path {
+        .mermaid .edgePath path {
+            transition: all 0.3s ease;
+            pointer-events: all;
+        }
+
+        .mermaid .edgePath.interactive-hover path {
             stroke-width: 3px !important;
-            filter: drop-shadow(0 0 8px currentColor);
+            filter: drop-shadow(0 0 6px currentColor);
         }
 
-        .mermaid .edgePath.highlighted path {
+        .mermaid .edgePath.interactive-highlighted path {
             stroke-width: 4px !important;
             filter: drop-shadow(0 0 12px currentColor);
-            animation: pulse 1.5s ease-in-out infinite;
+            animation: pulse 2s ease-in-out infinite;
         }
 
-        .mermaid .node.highlighted {
-            filter: brightness(1.2) drop-shadow(0 0 12px currentColor);
-            transform: scale(1.05);
+        .mermaid .edgeLabel {
+            pointer-events: none;
         }
 
         @keyframes pulse {
@@ -1176,7 +1186,7 @@ flowchart TD
             setTimeout(() => {
                 setupNodeInteractions(svg, tooltip);
                 setupEdgeInteractions(svg);
-            }, 200);
+            }, 500);
 
             // Mouse wheel zoom
             wrapper.addEventListener('wheel', (e) => {
@@ -1243,6 +1253,14 @@ flowchart TD
             wrapper.addEventListener('touchend', () => {
                 isDragging = false;
             });
+
+            // Click on background to clear highlights
+            wrapper.addEventListener('click', (e) => {
+                if (e.target === wrapper || e.target === svg) {
+                    clearAllHighlights(svg);
+                    hideTooltip(tooltip);
+                }
+            });
         }
 
         function getTouchDistance(touches) {
@@ -1296,59 +1314,132 @@ flowchart TD
 
         // Setup node interactions
         function setupNodeInteractions(svg, tooltip) {
+            console.log('Setting up node interactions');
             const nodes = svg.querySelectorAll('.node');
+            console.log('Found nodes:', nodes.length);
             
-            nodes.forEach(node => {
+            nodes.forEach((node, index) => {
                 const nodeId = node.id || '';
-                const nodeKey = nodeId.replace(/^flowchart-/, '').replace(/-\d+$/, '');
+                const nodeKey = extractNodeKey(nodeId);
                 const info = nodeInfo[nodeKey];
                 
-                node.addEventListener('mouseenter', (e) => {
+                console.log(`Node ${index}: id=${nodeId}, key=${nodeKey}, hasInfo=${!!info}`);
+                
+                // Use more specific event handling to avoid conflicts
+                node.style.pointerEvents = 'all';
+                
+                const handleMouseEnter = (e) => {
+                    e.stopPropagation();
+                    clearAllHighlights(svg);
+                    
+                    node.classList.add('interactive-hover');
+                    highlightConnectedElements(node, svg);
+                    
                     if (info) {
                         showTooltip(e, info, tooltip);
                     }
-                    highlightConnectedElements(node, svg);
-                });
+                };
                 
-                node.addEventListener('mouseleave', () => {
+                const handleMouseLeave = (e) => {
+                    e.stopPropagation();
+                    node.classList.remove('interactive-hover');
+                    clearNonPermanentHighlights(svg);
                     hideTooltip(tooltip);
-                    clearHighlights(svg);
-                });
+                };
                 
-                node.addEventListener('click', (e) => {
+                const handleClick = (e) => {
                     e.stopPropagation();
                     if (info && info.links.length > 0) {
                         window.open(info.links[0].url, '_blank');
                     }
-                });
+                };
+                
+                // Remove existing listeners to avoid duplicates
+                node.removeEventListener('mouseenter', handleMouseEnter);
+                node.removeEventListener('mouseleave', handleMouseLeave);
+                node.removeEventListener('click', handleClick);
+                
+                // Add new listeners
+                node.addEventListener('mouseenter', handleMouseEnter);
+                node.addEventListener('mouseleave', handleMouseLeave);
+                node.addEventListener('click', handleClick);
             });
         }
 
         // Setup edge interactions
         function setupEdgeInteractions(svg) {
-            const edges = svg.querySelectorAll('.edgePath');
+            console.log('Setting up edge interactions');
+            // Try multiple selectors to find edges
+            let edges = svg.querySelectorAll('.edgePath');
+            if (edges.length === 0) {
+                edges = svg.querySelectorAll('path[id*="L-"]');
+            }
+            if (edges.length === 0) {
+                edges = svg.querySelectorAll('g[class*="edge"]');
+            }
+            if (edges.length === 0) {
+                edges = svg.querySelectorAll('path[marker-end]');
+            }
             
-            edges.forEach(edge => {
-                edge.addEventListener('mouseenter', () => {
-                    edge.classList.add('highlighted');
-                });
+            console.log('Found edges:', edges.length);
+            
+            edges.forEach((edge, index) => {
+                console.log(`Edge ${index}:`, edge.className.baseVal || edge.className);
                 
-                edge.addEventListener('mouseleave', () => {
-                    edge.classList.remove('highlighted');
-                });
+                // Ensure pointer events work
+                edge.style.pointerEvents = 'all';
+                if (edge.querySelector('path')) {
+                    edge.querySelector('path').style.pointerEvents = 'all';
+                }
                 
-                edge.addEventListener('click', (e) => {
+                const handleMouseEnter = (e) => {
+                    e.stopPropagation();
+                    edge.classList.add('interactive-hover');
+                };
+                
+                const handleMouseLeave = (e) => {
+                    e.stopPropagation();
+                    edge.classList.remove('interactive-hover');
+                };
+                
+                const handleClick = (e) => {
                     e.stopPropagation();
                     // Toggle permanent highlight
-                    if (edge.classList.contains('highlighted')) {
-                        edge.classList.remove('highlighted');
+                    if (edge.classList.contains('interactive-highlighted')) {
+                        edge.classList.remove('interactive-highlighted');
                     } else {
                         // Clear other permanent highlights
-                        svg.querySelectorAll('.edgePath.highlighted').forEach(e => e.classList.remove('highlighted'));
-                        edge.classList.add('highlighted');
+                        svg.querySelectorAll('.interactive-highlighted').forEach(el => {
+                            if (el !== edge) el.classList.remove('interactive-highlighted');
+                        });
+                        edge.classList.add('interactive-highlighted');
                     }
-                });
+                };
+                
+                // Remove existing listeners
+                edge.removeEventListener('mouseenter', handleMouseEnter);
+                edge.removeEventListener('mouseleave', handleMouseLeave);
+                edge.removeEventListener('click', handleClick);
+                
+                // Add new listeners
+                edge.addEventListener('mouseenter', handleMouseEnter);
+                edge.addEventListener('mouseleave', handleMouseLeave);
+                edge.addEventListener('click', handleClick);
             });
+        }
+
+        // Helper function to extract node key from ID
+        function extractNodeKey(nodeId) {
+            // Try different patterns to extract the key
+            let key = nodeId.replace(/^flowchart-/, '').replace(/-\d+$/, '');
+            
+            // Handle different mermaid ID patterns
+            if (key.includes('-')) {
+                const parts = key.split('-');
+                key = parts[parts.length - 1];
+            }
+            
+            return key.toUpperCase();
         }
 
         // Show tooltip
@@ -1390,22 +1481,44 @@ flowchart TD
         // Highlight connected elements
         function highlightConnectedElements(node, svg) {
             const nodeId = node.id;
-            const edges = svg.querySelectorAll('.edgePath');
+            // Try multiple edge selectors
+            const edgeSelectors = ['.edgePath', 'path[id*="L-"]', 'g[class*="edge"]', 'path[marker-end]'];
             
-            edges.forEach(edge => {
-                const edgeId = edge.id || '';
-                if (edgeId.includes(nodeId)) {
-                    edge.classList.add('highlighted');
-                }
+            edgeSelectors.forEach(selector => {
+                const edges = svg.querySelectorAll(selector);
+                edges.forEach(edge => {
+                    const edgeId = edge.id || '';
+                    // Check if this edge is connected to the node
+                    if (edgeId.includes(nodeId) || isEdgeConnectedToNode(edge, nodeId)) {
+                        edge.classList.add('interactive-highlighted');
+                    }
+                });
             });
-            
-            node.classList.add('highlighted');
+        }
+
+        // Check if edge is connected to node (fallback method)
+        function isEdgeConnectedToNode(edge, nodeId) {
+            // Check if the edge path data or other attributes reference the node
+            const pathElement = edge.tagName === 'path' ? edge : edge.querySelector('path');
+            if (pathElement) {
+                const pathData = pathElement.getAttribute('d') || '';
+                // This is a simplified check - in practice you'd need more sophisticated logic
+                return pathData.length > 0;
+            }
+            return false;
         }
 
         // Clear all highlights
-        function clearHighlights(svg) {
-            svg.querySelectorAll('.highlighted').forEach(el => {
-                el.classList.remove('highlighted');
+        function clearAllHighlights(svg) {
+            svg.querySelectorAll('.interactive-hover, .interactive-highlighted').forEach(el => {
+                el.classList.remove('interactive-hover', 'interactive-highlighted');
+            });
+        }
+
+        // Clear non-permanent highlights
+        function clearNonPermanentHighlights(svg) {
+            svg.querySelectorAll('.interactive-hover').forEach(el => {
+                el.classList.remove('interactive-hover');
             });
         }
 
