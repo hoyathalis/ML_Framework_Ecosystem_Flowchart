@@ -47,14 +47,52 @@
             margin: 0 auto;
             text-align: center;
         }
-        .iframe-container {
+        .chart-controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .toggle-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        .toggle-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+        .chart-note {
+            margin: 10px 0 0 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+        .chart-container {
             width: 100%;
-            height: 700px;
+            min-height: 700px;
             border: 2px solid #e0e6ed;
             border-radius: 12px;
             overflow: hidden;
-            margin: 40px 0;
+            margin: 20px 0 40px 0;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            background: white;
+        }
+        .chart-container iframe {
+            width: 100%;
+            height: 700px;
+        }
+        .mermaid {
+            padding: 20px;
+            background: white;
+            min-height: 600px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         .content-section {
             margin: 40px 0;
@@ -129,7 +167,12 @@
             </p>
         </div>
 
-        <div class="iframe-container">
+        <div class="chart-controls">
+            <button id="toggleChart" class="toggle-btn">Switch to Mermaid View</button>
+            <p class="chart-note">Having trouble with the interactive chart? Try the alternative view above.</p>
+        </div>
+
+        <div id="iframeChart" class="chart-container">
             <iframe src="https://claude.site/public/artifacts/e44d47cf-35c2-4d48-8046-8b801680b465/embed" 
                     title="ML/AI Framework Ecosystem Interactive Flowchart" 
                     width="100%" 
@@ -138,6 +181,171 @@
                     allow="clipboard-write" 
                     allowfullscreen>
             </iframe>
+        </div>
+
+        <div id="mermaidChart" class="chart-container" style="display: none;">
+            <div class="mermaid">
+flowchart TD
+  %% Layer 1: Frameworks
+  subgraph L1["🎯 Layer 1: High-Level Frameworks"]
+    direction TB
+    PT["🔥 PyTorch<br/>nn.Module"]
+    TF["🟠 TensorFlow<br/>Graph/Eager"]
+    JAX["🔵 JAX<br/>NumPy-style"]
+  end
+
+  %% Layer 2: Bridges / Frontends
+  subgraph L2["🔗 Layer 2: Bridges / Frontends"]
+    direction TB
+    subgraph L2A["PyTorch Bridges"]
+      direction TB
+      TC["📦 torch.compile"]
+      PXLA["📦 torch_xla"]
+      TMLIR["📦 torch-mlir"]
+      PTONNX["📦 torch.onnx"]
+    end
+    subgraph L2B["TensorFlow Bridges"]
+      direction TB
+      TFXLA["📦 tf.function (+XLA)"]
+      TFMLIR["📦 TF-MLIR"]
+      TF2TFL["📦 TFLite Converter (TF)"]
+      TFONNX["📦 tf2onnx"]
+      TF2TRT["📦 TF-TensorRT"]
+    end
+    subgraph L2C["JAX Bridges"]
+      direction TB
+      JAXJIT["📦 jax.jit"]
+      JAX2ONNX["📦 jax2onnx"]
+    end
+  end
+
+  %% Layer 3: IRs & Exchange
+  subgraph L3["📋 Layer 3: IRs & Exchange Formats"]
+    direction TB
+    FX["📋 FX Graph (PyTorch)"]
+    STABLEHLO["📦 StableHLO (OpenXLA)"]
+    MLIR["🏗️ MLIR (TOSA/Linalg/etc.)"]
+    ONNX["📦 ONNX (Exchange)"]
+  end
+
+  %% Converters
+  subgraph L3C["🔄 Converters"]
+    direction TB
+    ONNXTFL["ONNX → TFLite"]
+    ONNX2TRT["ONNX → TensorRT"]
+    ONNX2COREML["ONNX → Core ML"]
+    TORCHTRT["Torch-TensorRT"]
+  end
+
+  %% Layer 4: Compilers & Runtimes
+  subgraph L4["⚡ Layer 4: Compilers & Runtimes"]
+    direction TB
+    IND["🔧 TorchInductor"]
+    XLA["⚡ OpenXLA (XLA)"]
+    TVM["🎯 TVM"]
+    IREE["📦 IREE"]
+    TRITON["🔺 Triton Kernels"]
+    ORT["▶️ ONNX Runtime"]
+    TFLITE["▶️ TFLite Interpreter"]
+    TRT["▶️ TensorRT Engine"]
+    COREMLRT["▶️ Core ML Runtime"]
+    NNAPIRT["▶️ NNAPI Runtime"]
+  end
+
+  %% Layer 5: Hardware
+  subgraph L5["🖥️ Layer 5: Hardware Targets"]
+    direction TB
+    CPU["💻 CPU"]
+    GPU["🎮 GPU"]
+    TPU["🧠 TPU"]
+    DSP["📶 DSP/Hexagon"]
+    ANE["🍎 Apple Neural Engine"]
+    NPU["📱 Mobile NPU"]
+  end
+
+  %% Ordering
+  L1 --> L2 --> L3 --> L3C --> L4 --> L5
+
+  %% PyTorch
+  PT --> TC --> FX --> IND
+  PT --> PXLA --> STABLEHLO
+  PT --> TMLIR --> MLIR
+  PT --> PTONNX --> ONNX
+  PT -.-> TORCHTRT
+
+  %% TensorFlow
+  TF --> TFXLA --> STABLEHLO
+  TF --> TFMLIR --> MLIR
+  TF --> TF2TFL --> TFLITE
+  TF --> TFONNX --> ONNX
+  TF --> TF2TRT --> TRT
+
+  %% JAX
+  JAX --> JAXJIT --> STABLEHLO
+  JAX --> JAX2ONNX --> ONNX
+
+  %% IRs
+  STABLEHLO --> XLA
+  MLIR --> IREE
+  ONNX --> TVM
+  ONNX --> ORT
+  %% optional via onnx-mlir
+  ONNX -.-> MLIR
+
+  %% Converters
+  ONNX --> ONNXTFL --> TFLITE
+  ONNX --> ONNX2TRT --> TRT
+  ONNX --> ONNX2COREML --> COREMLRT
+  TORCHTRT --> TRT
+
+  %% Compilers/Runtimes
+  IND --> TRITON --> GPU
+  IND --> CPU
+  XLA --> TPU
+  XLA --> GPU
+  XLA --> CPU
+  IREE --> CPU
+  IREE --> GPU
+  IREE --> NNAPIRT
+  TVM --> CPU
+  TVM --> GPU
+  TVM -.-> NNAPIRT
+
+  ORT --> CPU
+  ORT --> GPU
+  ORT --> NNAPIRT
+  ORT --> COREMLRT
+
+  TFLITE --> CPU
+  TFLITE --> GPU
+  TFLITE --> NNAPIRT
+  TFLITE --> DSP
+  TFLITE --> COREMLRT
+
+  TRT --> GPU
+  COREMLRT --> ANE
+  COREMLRT --> GPU
+  COREMLRT --> CPU
+  NNAPIRT --> NPU
+  NNAPIRT --> CPU
+
+  %% Styling
+  classDef layer fill:#f8f9fa,stroke:#343a40,stroke-width:3px
+  classDef framework fill:#e1f5fe,stroke:#0277bd,color:#000
+  classDef ir fill:#fff8e1,stroke:#ff8f00,color:#000
+  classDef converter fill:#fff3e0,stroke:#f57c00,color:#000
+  classDef compiler fill:#e8eaf6,stroke:#3f51b5,color:#000
+  classDef runtime fill:#ede7f6,stroke:#5e35b1,color:#000
+  classDef hardware fill:#e8f5e8,stroke:#2e7d32,color:#000
+
+  class L1,L2,L3,L3C,L4,L5 layer
+  class PT,TF,JAX framework
+  class FX,ONNX,STABLEHLO,MLIR ir
+  class ONNXTFL,ONNX2TRT,ONNX2COREML,TORCHTRT converter
+  class IND,XLA,TVM,IREE,TRITON compiler
+  class ORT,TFLITE,TRT,COREMLRT,NNAPIRT runtime
+  class CPU,GPU,TPU,DSP,ANE,NPU hardware
+            </div>
         </div>
 
         <div class="content-section">
@@ -220,5 +428,61 @@
             <p>This architecture enables developers to write code in familiar high-level frameworks while achieving optimized performance across diverse hardware platforms.</p>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            }
+        });
+
+        let isIframeView = true;
+        const toggleBtn = document.getElementById('toggleChart');
+        const iframeChart = document.getElementById('iframeChart');
+        const mermaidChart = document.getElementById('mermaidChart');
+
+        toggleBtn.addEventListener('click', function() {
+            if (isIframeView) {
+                // Switch to Mermaid view
+                iframeChart.style.display = 'none';
+                mermaidChart.style.display = 'block';
+                toggleBtn.textContent = 'Switch to Interactive View';
+                isIframeView = false;
+            } else {
+                // Switch to iframe view
+                iframeChart.style.display = 'block';
+                mermaidChart.style.display = 'none';
+                toggleBtn.textContent = 'Switch to Mermaid View';
+                isIframeView = true;
+            }
+        });
+
+        // Error handling for iframe loading
+        const iframe = document.querySelector('iframe');
+        iframe.addEventListener('error', function() {
+            console.log('Iframe failed to load, switching to Mermaid view');
+            toggleBtn.click();
+        });
+
+        // Check if iframe loads successfully after a timeout
+        setTimeout(function() {
+            try {
+                if (iframe.contentDocument || iframe.contentWindow.document) {
+                    // Iframe loaded successfully
+                } else {
+                    // Iframe might be blocked, offer alternative
+                    document.querySelector('.chart-note').innerHTML = 
+                        '<strong>Interactive chart blocked?</strong> Click the button above to view the Mermaid version.';
+                }
+            } catch (e) {
+                // Cross-origin or other error
+                console.log('Iframe access error:', e);
+            }
+        }, 3000);
+    </script>
 </body>
 </html>
