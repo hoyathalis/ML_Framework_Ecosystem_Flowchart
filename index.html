@@ -912,22 +912,44 @@ flowchart TD
             securityLevel: 'loose'
         });
 
+        // Store original diagram text
+        let originalDiagramText = '';
+
         // Function to render Mermaid diagram
         async function renderMermaidDiagram() {
             const mermaidElement = document.getElementById('mermaidDiagram');
-            if (mermaidElement && mermaidElement.textContent.trim()) {
+            if (!mermaidElement) return;
+
+            // Store original text on first render
+            if (!originalDiagramText && mermaidElement.textContent.trim()) {
+                originalDiagramText = mermaidElement.textContent.trim();
+            }
+
+            if (originalDiagramText) {
                 // Clear any existing rendered content
                 mermaidElement.removeAttribute('data-processed');
-                mermaidElement.innerHTML = mermaidElement.textContent;
+                mermaidElement.innerHTML = originalDiagramText;
                 
-                // Re-initialize with current theme
-                const currentTheme = document.documentElement.getAttribute('data-theme');
-                mermaid.initialize({ 
+                // Get current theme
+                const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+                const isDarkMode = currentTheme === 'dark';
+                
+                // Configure Mermaid with proper theme
+                const config = {
                     startOnLoad: false,
-                    theme: currentTheme === 'dark' ? 'dark' : 'neutral',
+                    theme: isDarkMode ? 'dark' : 'neutral',
                     themeVariables: {
                         fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                        fontSize: '16px'
+                        fontSize: '16px',
+                        primaryColor: isDarkMode ? '#374151' : '#f3f4f6',
+                        primaryTextColor: isDarkMode ? '#f8fafc' : '#1f2937',
+                        primaryBorderColor: isDarkMode ? '#6b7280' : '#d1d5db',
+                        lineColor: isDarkMode ? '#9ca3af' : '#6b7280',
+                        secondaryColor: isDarkMode ? '#4b5563' : '#e5e7eb',
+                        tertiaryColor: isDarkMode ? '#1f2937' : '#ffffff',
+                        background: isDarkMode ? '#0f172a' : '#ffffff',
+                        mainBkg: isDarkMode ? '#1e293b' : '#f8fafc',
+                        secondBkg: isDarkMode ? '#334155' : '#f1f5f9'
                     },
                     flowchart: {
                         useMaxWidth: false,
@@ -936,20 +958,33 @@ flowchart TD
                         padding: 30
                     },
                     securityLevel: 'loose'
-                });
+                };
+
+                // Initialize Mermaid with new config
+                mermaid.initialize(config);
                 
                 try {
+                    // Generate unique ID for each render
+                    const diagramId = 'mermaid-svg-' + Date.now();
+                    
                     // Render the diagram
-                    const { svg } = await mermaid.render('mermaid-svg', mermaidElement.textContent);
+                    const { svg } = await mermaid.render(diagramId, originalDiagramText);
                     mermaidElement.innerHTML = svg;
                     
                     // Add interactive features after rendering
-                    setupInteractiveFeatures();
+                    setTimeout(setupInteractiveFeatures, 100);
                 } catch (error) {
                     console.error('Mermaid rendering error:', error);
-                    // Fallback to run method
-                    mermaid.run();
-                    setTimeout(setupInteractiveFeatures, 500);
+                    // Fallback: try with run method
+                    try {
+                        mermaidElement.innerHTML = originalDiagramText;
+                        mermaidElement.classList.add('mermaid');
+                        await mermaid.run();
+                        setTimeout(setupInteractiveFeatures, 500);
+                    } catch (fallbackError) {
+                        console.error('Mermaid fallback rendering error:', fallbackError);
+                        mermaidElement.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Diagram failed to render. Please refresh the page.</div>';
+                    }
                 }
             }
         }
@@ -1086,7 +1121,7 @@ flowchart TD
         }
 
         // Theme toggle with Mermaid re-rendering
-        themeToggle.addEventListener('click', () => {
+        themeToggle.addEventListener('click', async () => {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
@@ -1094,14 +1129,42 @@ flowchart TD
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
             
+            // Reset zoom and pan when switching themes
+            currentZoom = 1;
+            panX = 0;
+            panY = 0;
+            
             // Re-render Mermaid diagram with new theme
-            setTimeout(renderMermaidDiagram, 300);
+            try {
+                await renderMermaidDiagram();
+            } catch (error) {
+                console.error('Theme switch rendering error:', error);
+                // Fallback: reload page if rendering fails
+                setTimeout(() => window.location.reload(), 1000);
+            }
         });
 
         // Control button event listeners
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initial render
-            setTimeout(renderMermaidDiagram, 100);
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Wait for fonts to load
+            if (document.fonts && document.fonts.ready) {
+                await document.fonts.ready;
+            }
+            
+            // Initial render with error handling
+            try {
+                await renderMermaidDiagram();
+            } catch (error) {
+                console.error('Initial rendering error:', error);
+                // Retry once after a delay
+                setTimeout(async () => {
+                    try {
+                        await renderMermaidDiagram();
+                    } catch (retryError) {
+                        console.error('Retry rendering error:', retryError);
+                    }
+                }, 1000);
+            }
             
             // Button event listeners
             document.getElementById('zoomInBtn').addEventListener('click', () => zoom(1.2));
