@@ -298,6 +298,51 @@
             height: auto;
         }
 
+        /* Zoom controls */
+        .chart-controls-bottom {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+
+        .chart-control-btn {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            color: var(--text-secondary);
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1.2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .chart-control-btn:hover {
+            background-color: var(--bg-tertiary);
+            border-color: var(--border-secondary);
+        }
+
+        .fullscreen-mode {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            z-index: 1000 !important;
+            background-color: var(--bg-primary) !important;
+        }
+
+        .fullscreen-mode .mermaid-wrapper {
+            height: 100vh !important;
+        }
+
 
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -738,6 +783,12 @@ flowchart TD
   class CPU,GPU,TPU,DSP,ANE,NPU hardware
                     </div>
                 </div>
+                <div class="chart-controls-bottom">
+                    <button class="chart-control-btn" id="zoomInBtn" title="Zoom In">+</button>
+                    <button class="chart-control-btn" id="zoomOutBtn" title="Zoom Out">−</button>
+                    <button class="chart-control-btn" id="resetZoomBtn" title="Reset Zoom">⌂</button>
+                    <button class="chart-control-btn" id="fullscreenBtn" title="Fullscreen">⛶</button>
+                </div>
             </div>
         </section>
 
@@ -911,6 +962,14 @@ flowchart TD
             }
         });
 
+        // Zoom and pan variables
+        let currentZoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
         // Basic theme toggle functionality
         function updateTheme() {
             const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
@@ -932,6 +991,87 @@ flowchart TD
             }
         }
 
+        // Zoom and pan functions
+        function zoom(factor, centerX, centerY) {
+            const newZoom = Math.max(0.1, Math.min(5, currentZoom * factor));
+            
+            if (centerX !== undefined && centerY !== undefined) {
+                const wrapper = document.getElementById('mermaidChart');
+                const rect = wrapper.getBoundingClientRect();
+                const x = centerX - rect.left;
+                const y = centerY - rect.top;
+                
+                panX = x - (x - panX) * (newZoom / currentZoom);
+                panY = y - (y - panY) * (newZoom / currentZoom);
+            }
+            
+            currentZoom = newZoom;
+            updateTransform();
+        }
+
+        function updateTransform() {
+            const mermaidElement = document.getElementById('mermaidDiagram');
+            if (mermaidElement) {
+                mermaidElement.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+                mermaidElement.style.transformOrigin = '0 0';
+            }
+        }
+
+        function resetZoom() {
+            currentZoom = 1;
+            panX = 0;
+            panY = 0;
+            updateTransform();
+        }
+
+        function toggleFullscreen() {
+            const container = document.getElementById('chartContainer');
+            if (container.classList.contains('fullscreen-mode')) {
+                container.classList.remove('fullscreen-mode');
+                document.getElementById('fullscreenBtn').innerHTML = '⛶';
+            } else {
+                container.classList.add('fullscreen-mode');
+                document.getElementById('fullscreenBtn').innerHTML = '✕';
+            }
+        }
+
+        // Mouse wheel zoom
+        function setupZoomControls() {
+            const wrapper = document.getElementById('mermaidChart');
+            
+            // Mouse wheel zoom
+            wrapper.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? 0.9 : 1.1;
+                zoom(delta, e.clientX, e.clientY);
+            });
+
+            // Button controls
+            document.getElementById('zoomInBtn').addEventListener('click', () => zoom(1.2));
+            document.getElementById('zoomOutBtn').addEventListener('click', () => zoom(0.8));
+            document.getElementById('resetZoomBtn').addEventListener('click', resetZoom);
+            document.getElementById('fullscreenBtn').addEventListener('click', toggleFullscreen);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.getElementById('chartContainer').classList.contains('fullscreen-mode')) {
+                    toggleFullscreen();
+                }
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === '=' || e.key === '+') {
+                        e.preventDefault();
+                        zoom(1.2);
+                    } else if (e.key === '-') {
+                        e.preventDefault();
+                        zoom(0.8);
+                    } else if (e.key === '0') {
+                        e.preventDefault();
+                        resetZoom();
+                    }
+                }
+            });
+        }
+
         // Theme toggle
         themeToggle.addEventListener('click', () => {
             const currentTheme = document.documentElement.getAttribute('data-theme');
@@ -941,6 +1081,11 @@ flowchart TD
             localStorage.setItem('theme', newTheme);
             updateThemeIcon(newTheme);
             updateTheme();
+        });
+
+        // Initialize zoom controls after page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            setupZoomControls();
         });
 
         // Smooth scrolling for anchor links
