@@ -299,11 +299,8 @@
         }
 
         .mermaid svg {
-            width: 100% !important;
-            height: 100% !important;
-            max-width: none !important;
-            min-width: 100%;
-            min-height: 100%;
+            max-width: 100%;
+            height: auto;
         }
 
         /* Simple node hover effect */
@@ -1078,10 +1075,10 @@ flowchart TD
                 fontSize: '16px'
             },
             flowchart: {
-                useMaxWidth: false,
+                useMaxWidth: true,
                 htmlLabels: true,
                 curve: 'basis',
-                padding: 30
+                padding: 20
             },
             securityLevel: 'loose'
         });
@@ -1126,10 +1123,10 @@ flowchart TD
                         secondBkg: isDarkMode ? '#334155' : '#f1f5f9'
                     },
                     flowchart: {
-                        useMaxWidth: false,
+                        useMaxWidth: true,
                         htmlLabels: true,
                         curve: 'basis',
-                        padding: 30
+                        padding: 20
                     },
                     securityLevel: 'loose'
                 };
@@ -1138,27 +1135,19 @@ flowchart TD
                 mermaid.initialize(config);
                 
                 try {
-                    // Generate unique ID for each render
-                    const diagramId = 'mermaid-svg-' + Date.now();
+                    // Clear and reset the element
+                    mermaidElement.innerHTML = originalDiagramText;
+                    mermaidElement.classList.add('mermaid');
+                    mermaidElement.removeAttribute('data-processed');
                     
-                    // Render the diagram
-                    const { svg } = await mermaid.render(diagramId, originalDiagramText);
-                    mermaidElement.innerHTML = svg;
+                    // Use run method for more reliable rendering
+                    await mermaid.run();
                     
                     // Add interactive features after rendering
                     setTimeout(setupInteractiveFeatures, 100);
                 } catch (error) {
                     console.error('Mermaid rendering error:', error);
-                    // Fallback: try with run method
-                    try {
-                        mermaidElement.innerHTML = originalDiagramText;
-                        mermaidElement.classList.add('mermaid');
-                        await mermaid.run();
-                        setTimeout(setupInteractiveFeatures, 500);
-                    } catch (fallbackError) {
-                        console.error('Mermaid fallback rendering error:', fallbackError);
-                        mermaidElement.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Diagram failed to render. Please refresh the page.</div>';
-                    }
+                    mermaidElement.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-secondary);">Diagram failed to render. Please refresh the page.</div>';
                 }
             }
         }
@@ -1188,16 +1177,12 @@ flowchart TD
             currentZoom = 1;
             panX = 0;
             panY = 0;
-            
-            // Apply initial transform
-            updateTransform();
 
             // Add interactive features to nodes and edges
             setTimeout(() => {
-                debugSVGStructure(svg);
                 setupNodeInteractions(svg, tooltip);
                 setupEdgeInteractions(svg);
-            }, 1000);
+            }, 500);
 
             // Mouse wheel zoom
             wrapper.addEventListener('wheel', (e) => {
@@ -1298,10 +1283,11 @@ flowchart TD
         }
 
         function updateTransform() {
-            const svg = document.querySelector('#mermaidDiagram svg');
-            if (svg) {
-                svg.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
-                svg.style.transformOrigin = '0 0';
+            // Simplified transform to avoid interfering with Mermaid's layout
+            const wrapper = document.getElementById('mermaidChart');
+            if (wrapper) {
+                wrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom})`;
+                wrapper.style.transformOrigin = '0 0';
             }
         }
 
@@ -1323,48 +1309,9 @@ flowchart TD
             }
         }
 
-        // Debug SVG structure
-        function debugSVGStructure(svg) {
-            console.log('=== SVG Debug Info ===');
-            console.log('SVG element:', svg);
-            
-            // Find all possible node elements
-            const possibleNodes = [
-                svg.querySelectorAll('.node'),
-                svg.querySelectorAll('g[class*="node"]'),
-                svg.querySelectorAll('rect'),
-                svg.querySelectorAll('g[id*="flowchart"]')
-            ];
-            
-            possibleNodes.forEach((nodeList, i) => {
-                console.log(`Node selector ${i}:`, nodeList.length, 'elements');
-                nodeList.forEach((node, j) => {
-                    console.log(`  Node ${j}:`, node.className.baseVal || node.className, node.id);
-                });
-            });
-            
-            // Find all possible edge elements
-            const possibleEdges = [
-                svg.querySelectorAll('.edgePath'),
-                svg.querySelectorAll('path'),
-                svg.querySelectorAll('g[class*="edge"]'),
-                svg.querySelectorAll('line')
-            ];
-            
-            possibleEdges.forEach((edgeList, i) => {
-                console.log(`Edge selector ${i}:`, edgeList.length, 'elements');
-                edgeList.forEach((edge, j) => {
-                    if (j < 5) { // Only log first 5 to avoid spam
-                        console.log(`  Edge ${j}:`, edge.className.baseVal || edge.className, edge.id);
-                    }
-                });
-            });
-        }
 
         // Simple tooltip-only node interactions
         function setupNodeInteractions(svg, tooltip) {
-            console.log('Setting up simple node tooltips');
-            
             // Find nodes using multiple selectors
             let nodes = svg.querySelectorAll('.node');
             if (nodes.length === 0) {
@@ -1374,16 +1321,12 @@ flowchart TD
                 nodes = svg.querySelectorAll('g[id*="flowchart"]:not([id*="edge"])');
             }
             
-            console.log('Found nodes for tooltips:', nodes.length);
-            
             nodes.forEach((node, index) => {
                 const nodeId = node.id || '';
                 const nodeKey = extractNodeKey(nodeId);
                 const info = nodeInfo[nodeKey];
                 
                 if (info) {
-                    console.log(`Node ${index}: ${nodeKey} has tooltip info`);
-                    
                     node.addEventListener('mouseenter', (e) => {
                         showTooltip(e, info, tooltip);
                     });
@@ -1404,8 +1347,6 @@ flowchart TD
 
         // Setup edge interactions
         function setupEdgeInteractions(svg) {
-            console.log('Setting up edge interactions');
-            
             // Try to find edges using multiple strategies
             let edges = [];
             
@@ -1413,7 +1354,6 @@ flowchart TD
             let edgeElements = svg.querySelectorAll('.edgePath');
             if (edgeElements.length > 0) {
                 edges = Array.from(edgeElements);
-                console.log('Found edges with .edgePath:', edges.length);
             }
             
             // Strategy 2: Look for paths with specific attributes
@@ -1421,7 +1361,6 @@ flowchart TD
                 edgeElements = svg.querySelectorAll('path[marker-end]');
                 if (edgeElements.length > 0) {
                     edges = Array.from(edgeElements);
-                    console.log('Found edges with path[marker-end]:', edges.length);
                 }
             }
             
@@ -1432,24 +1371,9 @@ flowchart TD
                     const d = path.getAttribute('d');
                     return d && d.includes('M') && d.includes('L');
                 });
-                console.log('Found edges by filtering paths:', edges.length);
             }
-            
-            // Strategy 4: Look for groups that contain edges
-            if (edges.length === 0) {
-                edgeElements = svg.querySelectorAll('g');
-                edges = Array.from(edgeElements).filter(g => {
-                    const className = g.className.baseVal || g.className;
-                    return className && (className.includes('edge') || className.includes('path'));
-                });
-                console.log('Found edge groups:', edges.length);
-            }
-            
-            console.log('Total edges found:', edges.length);
             
             edges.forEach((edge, index) => {
-                console.log(`Setting up edge ${index}:`, edge.tagName, edge.className.baseVal || edge.className);
-                
                 // Make sure edge is interactive
                 edge.style.pointerEvents = 'stroke';
                 edge.style.cursor = 'pointer';
@@ -1463,7 +1387,6 @@ flowchart TD
                 
                 // Create stable event handlers
                 const edgeMouseEnter = () => {
-                    console.log('Edge hover:', index);
                     edge.classList.add('interactive-hover');
                 };
                 
@@ -1473,7 +1396,6 @@ flowchart TD
                 
                 const edgeClick = (e) => {
                     e.stopPropagation();
-                    console.log('Edge clicked:', index);
                     
                     // Toggle permanent highlight
                     if (edge.classList.contains('interactive-highlighted')) {
@@ -1499,10 +1421,6 @@ flowchart TD
                     path.addEventListener('click', edgeClick);
                 });
             });
-            
-            if (edges.length === 0) {
-                console.warn('No edges found! SVG structure might be different than expected.');
-            }
         }
 
         // Helper function to extract node key from ID
